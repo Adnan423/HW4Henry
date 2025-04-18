@@ -121,3 +121,35 @@ class RegisterPage extends StatelessWidget {
           .showSnackBar(SnackBar(content: Text('Registration failed: $e')));
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Register")),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(controller: firstNameController, decoration: InputDecoration(labelText: "First Name")),
+              TextField(controller: lastNameController, decoration: InputDecoration(labelText: "Last Name")),
+              TextField(controller: emailController, decoration: InputDecoration(labelText: "Email")),
+              TextField(controller: passwordController, decoration: InputDecoration(labelText: "Password"), obscureText: true),
+              SizedBox(height: 16),
+              ElevatedButton(onPressed: () => register(context), child: Text("Register")),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Home Page with Navigation Drawer + Boards
+class HomePage extends StatelessWidget {
+  final List<Map<String, dynamic>> boards = [
+    {'name': 'Games', 'icon': Icons.videogame_asset},
+    {'name': 'Business', 'icon': Icons.business_center},
+    {'name': 'Public Health', 'icon': Icons.health_and_safety},
+    {'name': 'Study', 'icon': Icons.menu_book},
+  ];
