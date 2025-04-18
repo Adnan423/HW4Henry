@@ -153,3 +153,119 @@ class HomePage extends StatelessWidget {
     {'name': 'Public Health', 'icon': Icons.health_and_safety},
     {'name': 'Study', 'icon': Icons.menu_book},
   ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Message Boards")),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(child: Text("Welcome!", style: TextStyle(fontSize: 20))),
+            ListTile(
+              leading: Icon(Icons.forum),
+              title: Text("Message Boards"),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text("Profile"),
+              onTap: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Profile page coming soon."))),
+            ),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text("Settings"),
+              onTap: () => FirebaseAuth.instance.signOut().then((_) {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => LoginPage()));
+              }),
+            ),
+          ],
+        ),
+      ),
+      body: ListView.builder(
+        itemCount: boards.length,
+        itemBuilder: (context, index) {
+          final board = boards[index];
+          return ListTile(
+            leading: Icon(board['icon']),
+            title: Text(board['name']),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ChatPage(boardName: board['name'])),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// Chat Page
+class ChatPage extends StatelessWidget {
+  final String boardName;
+  final msgController = TextEditingController();
+
+  ChatPage({required this.boardName});
+
+  void sendMessage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && msgController.text.trim().isNotEmpty) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final displayName = '${userDoc['firstName']} ${userDoc['lastName']}';
+
+      await FirebaseFirestore.instance.collection('messages_$boardName').add({
+        'text': msgController.text.trim(),
+        'user': displayName,
+        'timestamp': DateTime.now(),
+      });
+      msgController.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(boardName)),
+      body: Column(
+        children: [
+          Expanded(
+            child: StreamBuilder(
+              stream: FirebaseFirestore.instance
+                  .collection('messages_$boardName')
+                  .orderBy('timestamp')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+                final docs = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final msg = docs[index];
+                    return ListTile(
+                      title: Text(msg['user']),
+                      subtitle: Text(msg['text']),
+                      trailing: Text(
+                        (msg['timestamp'] as Timestamp).toDate().toLocal().toString().substring(0, 16),
+                        style: TextStyle(fontSize: 10),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Divider(height: 1),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(child: TextField(controller: msgController, decoration: InputDecoration(hintText: "Type a message..."))),
+                IconButton(icon: Icon(Icons.send), onPressed: sendMessage),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
